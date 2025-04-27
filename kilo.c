@@ -1,4 +1,3 @@
-#include <asm-generic/errno-base.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -6,12 +5,15 @@
 #include <termios.h>
 #include <unistd.h>
 
+// *** defines ***
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 struct termios orig_termios;
 
+// *** Terminal ***
 void die(const char *s) {
-        perror(s);
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        write(STDOUT_FILENO, "\x1b[H", 3);
 
         exit(1);
 }
@@ -34,6 +36,12 @@ void enableRawMode() {
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) die("tcgetattr");
 }
 
+// *** output ***
+void editorDrawRows() {
+        for (int y = 0; y < 24; y++) {
+                write(STDOUT_FILENO, "~\r\n", 3);
+        }
+}
 char editorReadKey() {
         int nread;
         char c;
@@ -48,6 +56,10 @@ char editorReadKey() {
 void editorRefreshScreen() {
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
+
+        editorDrawRows();
+
+        write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
 void editorProcessKeypress() {
@@ -55,11 +67,14 @@ void editorProcessKeypress() {
 
         switch (c) {
                 case CTRL_KEY('q'): 
+                        write(STDOUT_FILENO, "\x1b[2J", 4);
+                        write(STDOUT_FILENO, "\x1b[H", 3);
                         exit(0);
                         break;
         }
 }
 
+// *** Init ***
 int main() {
         enableRawMode();
 
